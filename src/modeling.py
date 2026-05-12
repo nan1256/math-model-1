@@ -134,21 +134,20 @@ class ModelBuilder:
         """
         ExplainModel（解释模型）
 
-        Y = alpha_s * t + beta_log * ln(1+t) + beta_rust_base * (Rust0 * t) + epsilon
+        Y = alpha_s * t + beta_log * ln(1+t) + epsilon
 
-        用途：机理分析——回答时间是否主导、样品类型衰减斜率差异、锈蚀是否加速衰减。
-        避免过多环境累计变量导致解释困难。
+        用途：机理分析——验证时间延迟是否主导、比较四类样品基础时间衰减斜率、
+        通过锈蚀钢筋斜率 > 普通钢筋斜率说明锈蚀状态降低剩磁稳定性。
+        不含环境累计变量和 Rust0*t（后者与 type:day 共线），避免解释困难。
         """
         print_section_header("构建ExplainModel（解释模型）")
         try:
-            self.df['Rust0'] = self.df['锈蚀等级'].astype(float)
-            self.df['Rust0_t'] = self.df['Rust0'] * self.df['测量天数']
-            formula = 'Y ~ 0 + C(样品类型):测量天数 + log_t + Rust0_t'
+            formula = 'Y ~ 0 + C(样品类型):测量天数 + log_t'
             model = ols(formula, data=self.df).fit()
             self.models['ExplainModel'] = model
             self.results['ExplainModel'] = {
-                'formula': 'Y = α_s * t + β_log ln(1+t) + β_rust_base (Rust0 * t) + ε',
-                'description': '解释模型（时间+log_t+锈蚀基线，不含环境累计变量）',
+                'formula': 'Y = α_s * t + β_log ln(1+t) + ε',
+                'description': '解释模型（仅type:day+log_t，不含环境变量和Rust0*t）',
                 'sample_size': len(self.df)
             }
             logger.info(f"ExplainModel拟合成功: R² = {model.rsquared:.4f}")

@@ -200,7 +200,7 @@ class Visualizer:
         
         ax.set_xlabel('实测剩磁值 (mT)', fontsize=12, fontweight='bold')
         ax.set_ylabel('预测剩磁值 (mT)', fontsize=12, fontweight='bold')
-        ax.set_title('模型预测值与实测值对比', fontsize=14, fontweight='bold')
+        ax.set_title('Model 5 预测值与实测值对比', fontsize=14, fontweight='bold')
         ax.legend(fontsize=11)
         ax.grid(True, alpha=0.3)
         
@@ -223,7 +223,7 @@ class Visualizer:
         axes[0].hist(residuals, bins=30, edgecolor='black', alpha=0.7)
         axes[0].set_xlabel('残差值', fontsize=11, fontweight='bold')
         axes[0].set_ylabel('频数', fontsize=11, fontweight='bold')
-        axes[0].set_title('残差分布直方图', fontsize=12, fontweight='bold')
+        axes[0].set_title('Model 5 残差分布直方图', fontsize=12, fontweight='bold')
         axes[0].grid(True, alpha=0.3, axis='y')
         
         # Q-Q图
@@ -252,7 +252,7 @@ class Visualizer:
         
         ax.set_xlabel('天数 (天)', fontsize=12, fontweight='bold')
         ax.set_ylabel('预测剩磁值 (mT)', fontsize=12, fontweight='bold')
-        ax.set_title('四类样品第23-29天预测剩磁曲线', fontsize=14, fontweight='bold')
+        ax.set_title('Model 5 第23-29天预测剩磁曲线', fontsize=14, fontweight='bold')
         ax.legend(fontsize=11)
         ax.grid(True, alpha=0.3)
         ax.set_xticks(self.df_pred_23_29['day'])
@@ -279,7 +279,7 @@ class Visualizer:
         
         ax.set_xlabel('天数 (天)', fontsize=12, fontweight='bold')
         ax.set_ylabel('动态阈值 (mT)', fontsize=12, fontweight='bold')
-        ax.set_title('四类样品1-90天动态阈值变化曲线', fontsize=14, fontweight='bold')
+        ax.set_title('Model 5 动态阈值 1-90天', fontsize=14, fontweight='bold')
         ax.legend(fontsize=11)
         ax.grid(True, alpha=0.3)
         
@@ -305,7 +305,7 @@ class Visualizer:
         
         ax.set_xlabel('测量天数 (天)', fontsize=12, fontweight='bold')
         ax.set_ylabel('衰减强度 Y(t) = -ln R(t)', fontsize=12, fontweight='bold')
-        ax.set_title('普通钢筋与锈蚀钢筋衰减速率对比', fontsize=14, fontweight='bold')
+        ax.set_title('锈蚀钢筋与普通钢筋衰减速率对比\n(锈蚀钢筋 type:day斜率≈0.095 > 普通钢筋≈0.065)', fontsize=14, fontweight='bold')
         ax.legend(fontsize=11)
         ax.grid(True, alpha=0.3)
         
@@ -389,7 +389,7 @@ class Visualizer:
             ax.legend(fontsize=8)
             ax.grid(True, alpha=0.3)
 
-        fig.suptitle('原始动态阈值 vs 单调修正动态阈值', fontsize=14, fontweight='bold')
+        fig.suptitle('Model 5 原始阈值 vs 单调修正阈值', fontsize=14, fontweight='bold')
         fig.tight_layout()
 
         output_path = self.output_dir / '12_monotonic_threshold_comparison.png'
@@ -459,7 +459,7 @@ class Visualizer:
             data = df_interval[df_interval['样品类型'] == sample_type]
 
             ax.fill_between(data['day'], data['threshold_lower_95'], data['threshold_upper_95'],
-                            alpha=0.2, color='steelblue', label='95% 置信区间')
+                            alpha=0.2, color='steelblue', label='近似预测区间')
             ax.plot(data['day'], data['threshold_mean'], linewidth=2, color='steelblue', label='均值')
 
             if 'threshold_mono_mean' in data.columns:
@@ -475,7 +475,7 @@ class Visualizer:
             ax.legend(fontsize=7)
             ax.grid(True, alpha=0.3)
 
-        fig.suptitle('动态阈值及95%置信区间', fontsize=14, fontweight='bold')
+        fig.suptitle('Model 5 动态阈值及近似预测区间', fontsize=14, fontweight='bold')
         fig.tight_layout()
         output_path = self.output_dir / '14_dynamic_threshold_interval.png'
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
