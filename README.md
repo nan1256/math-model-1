@@ -1,397 +1,972 @@
-# 剩磁法雷击判定预测 - 数学建模工程
+# 剩磁法雷击判定预测 —— README
 
-重庆邮电大学数学建模竞赛 B题：剩磁法雷击判定预测
-
-## 项目概述
-
-本项目基于环境累计暴露驱动的剩磁衰减模型，完成了从数据加载、预处理、特征工程、模型建立、预测到可视化的完整数学建模工程。
-
-### 核心创新
-
-1. **剩磁保持率建模**：不直接拟合原始剩磁，而是通过保持率 $R(t) = M(t)/M(0)$ 的衰减强度 $Y(t) = -\ln R(t)$ 进行建模。
-
-2. **环境累计变量**：构造了温度累计暴露、湿润时间、温湿度耦合等环境特征，更好地捕捉环境对剩磁衰减的影响。
-
-3. **锈蚀效应建模**：将锈蚀状态作为动态损伤指数纳入模型，区分了不同锈蚀程度样品的衰减差异。
-
-4. **动态阈值修正**：基于模型预测的衰减趋势，动态调整雷击判定阈值，提高判定准确性。
-
-## 项目结构
-
-```
-math model/
-├── data/                        # 数据目录
-│   ├── 附件1_模拟实验数据.csv   # 实验数据
-│   └── 附件2-weather_data.xlsx   # 天气数据
-│
-├── src/                         # 源代码模块
-│   ├── __init__.py             # 包初始化
-│   ├── utils.py                # 工具函数
-│   ├── data_loader.py          # 数据加载
-│   ├── preprocessing.py        # 数据预处理
-│   ├── feature_engineering.py  # 特征工程
-│   ├── modeling.py             # 模型建立
-│   ├── prediction.py           # 预测模块
-│   └── visualization.py        # 可视化模块
-│
-├── outputs/                     # 输出结果
-│   ├── figures/                # 12张图表输出
-│   ├── model_comparison.xlsx   # 模型对比表
-│   ├── main_model_coefficients.xlsx    # 模型参数表
-│   ├── prediction_23_29.xlsx   # 第23-29天预测（含区间）
-│   ├── dynamic_threshold_1_90.xlsx     # 1-90天动态阈值
-│   ├── monotonic_dynamic_threshold_1_90.xlsx  # 单调修正阈值
-│   ├── leave_one_day_cv_results.xlsx   # CV详细结果
-│   ├── leave_one_day_cv_summary.xlsx   # CV汇总
-│   ├── feature_correlation_matrix.xlsx  # 相关系数矩阵
-│   ├── feature_vif.xlsx        # VIF表
-│   ├── processed_data.csv      # 处理后的数据
-│   ├── main_model_summary.txt  # 模型摘要
-│   └── modeling_summary.md     # 论文摘要
-│
-├── main.py                      # 主程序
-├── requirements.txt            # Python依赖
-├── README.md                   # 本文件
-└── .gitignore                 # Git忽略文件
-```
-
-## 快速开始
-
-### 1. 环境配置
-
-#### 使用 pip 安装
-
-```bash
-# 进入项目目录
-cd "path/to/math model"
-
-# 创建虚拟环境（可选但推荐）
-python -m venv venv
-
-# 激活虚拟环境
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
-```
-
-#### 使用 conda 安装
-
-```bash
-# 创建新环境
-conda create -n modeling python=3.9
-
-# 激活环境
-conda activate modeling
-
-# 安装依赖
-pip install -r requirements.txt
-```
-
-### 2. 运行主程序
-
-```bash
-# 运行完整建模流程
-python main.py
-```
-
-程序将自动执行以下步骤：
-1. ✓ 加载并识别列名
-2. ✓ 数据预处理和清洗
-3. ✓ 特征工程（构造累计环境变量）
-4. ✓ 构建6个模型并比较
-5. ✓ 选择最终预测模型 (Model 5)
-6. ✓ 预测第23-29天的剩磁值
-7. ✓ 预测1-90天的动态阈值
-8. ✓ 生成12张专业图表
-9. ✓ 输出Excel和CSV结果
-
-### 3. 查看结果
-
-#### 模型对比结果
-```
-outputs/model_comparison.xlsx
-```
-
-#### 主模型参数
-```
-outputs/main_model_coefficients.xlsx
-```
-
-#### 预测结果
-```
-outputs/prediction_23_29.xlsx        # 第23-29天预测（含区间）
-outputs/dynamic_threshold_1_90.xlsx  # 1-90天动态阈值
-outputs/monotonic_dynamic_threshold_1_90.xlsx  # 单调修正阈值
-```
-
-#### 验证与诊断
-```
-outputs/leave_one_day_cv_results.xlsx   # Leave-One-Day-Out CV
-outputs/leave_one_day_cv_summary.xlsx   # CV汇总
-outputs/feature_correlation_matrix.xlsx  # 相关系数矩阵
-outputs/feature_vif.xlsx        # VIF共线性诊断
-```
-
-#### 可视化图表
-```
-outputs/figures/01_average_remanence.png
-outputs/figures/02_remanence_ratio.png
-outputs/figures/03_temperature_humidity.png
-outputs/figures/04_cumulative_features.png
-outputs/figures/05_measured_vs_predicted.png
-outputs/figures/06_residuals_distribution.png
-outputs/figures/07_prediction_23_29.png
-outputs/figures/08_dynamic_thresholds.png
-outputs/figures/09_corrosion_comparison.png
-outputs/figures/10_feature_correlation_heatmap.png
-outputs/figures/11_leave_one_day_cv_comparison.png
-outputs/figures/12_monotonic_threshold_comparison.png
-```
-
-#### 论文摘要
-```
-outputs/modeling_summary.md
-```
-
-## 数据文件说明
-
-### 附件1：模拟实验数据.csv
-
-必须包含以下列（自动识别，列名可以是中文或英文）：
-
-| 列名 | 说明 | 示例 |
-|------|------|------|
-| 样品类型 | 样品的类型 | 小号铁钉、小号铁夹、普通钢筋、锈蚀钢筋 |
-| 编号 | 同类样品的编号 | 1, 2, 3, ... |
-| 测量天数 | 测量的天数 | 0, 1, 2, ..., 90 |
-| 剩磁(mT) | 测量时刻的剩磁值 | 2.444, 2.1788, ... |
-| 温度(℃) | 测量时的温度 | 9.0, 7.5, ... |
-| 相对湿度(%) | 测量时的相对湿度 | 90, 85, ... |
-
-### 附件2：weather_data.xlsx
-
-可选，如果提供应包含以下列：
-
-| 列名 | 说明 |
-|------|------|
-| 天数 | 从0开始的天数 |
-| 温度 | 该天的温度 |
-| 相对湿度 | 该天的相对湿度百分比 |
-
-**注**：如果不提供weather_data.xlsx，程序将使用附件1中的温度和湿度数据。
-
-## 模型公式
-
-### 最终预测模型（Model 5）
-
-$$Y = \alpha_s \cdot t + \beta_{\log} \ln(1+t) + \beta_T C_T(t) + \beta_H TOW(t) + \beta_{TH} C_{TH}(t) + \beta_{rust} \, rust\_TOW(t) + \varepsilon$$
-
-其中：
-
-- $R_{i,s}(t) = M_{i,s}(t) / M_{i,s}(0)$：剩磁保持率
-- $Y_{i,s}(t) = -\ln R_{i,s}(t)$：衰减强度
-- $\alpha_s$：样品类型基础时间衰减斜率（通过 $0 + C(\text{样品类型}):\text{测量天数}$ 交互项估计）
-- $C_T(t) = \sum_{d=1}^{t} z_T(d)$：累计温度暴露
-- $TOW(t) = \sum_{d=1}^{t} I_{wet}(d)$：累计湿润时间，$I_{wet} = 1$ 当 $RH > 80\% \& T > 0$
-- $C_{TH}(t) = \sum_{d=1}^{t} z_T(d) \times z_H(d)$：温湿度耦合项
-- $rust\_TOW(t) = rust_0 \times TOW(t)$：锈蚀-湿润交互修正项
-- $z_T, z_H$：标准化的温度和湿度
-- $\ln(1+t)$：磁黏滞对数时间项
-
-**模型角色**：
-- Model 4：稳健基准模型（不含 $\ln(1+t)$），仅作对照
-- Model 5：**最终预测模型**，加入统一 $\ln(1+t)$
-- Model 6：复杂对照模型（type独立 $\ln(1+t)$），仅作对照
-
-### 剩磁预测公式
-
-$$\hat{M}_{i,s}(t) = M_{i,s}(0) \times \exp[-\hat{Y}_{i,s}(t)]$$
-
-### 动态阈值修正
-
-$$T_{dyn,s}(t) = T_{0,s} \times \exp[-\hat{Y}_s(t)]$$
-
-其中 $T_{0,s}$ 为样品类型的静态阈值：
-- 小号铁钉、小号铁夹：$T_0 = 1.0$ mT
-- 普通钢筋、锈蚀钢筋：$T_0 = 1.5$ mT
-
-## 修改字段映射
-
-如果数据的列名与程序预期不同，可以在 `src/data_loader.py` 中的 `FieldMapper` 类中修改列名识别规则。
-
-例如，如果实验数据中"样品类型"的列名为"Specimen_Type"：
-
-```python
-# 在 FieldMapper.__init__() 中添加
-self.sample_type_names = ['样品类型', 'type', '类型', 'sample_type', 'Specimen_Type']
-```
-
-## 常见问题
-
-### Q1: 程序找不到数据文件怎么办？
-
-**A**: 确保 `附件1_模拟实验数据.csv` 和 `附件2-weather_data.xlsx` 在以下位置之一：
-- 项目根目录
-- `data/` 子目录
-
-### Q2: 编码错误怎么办？
-
-**A**: 程序自动检测文件编码（UTF-8、GBK等）。如果仍有问题，请确保CSV文件使用UTF-8编码保存。
-
-### Q3: 某个模型构建失败怎么办？
-
-**A**: 程序具有容错机制，如果某个模型失败（如MixedLM不收敛），会自动跳过。您可以在 `outputs/model_comparison.xlsx` 中查看哪些模型成功构建。
-
-### Q4: 如何使用论文可以引用的格式输出结果？
-
-**A**: 查看 `outputs/modeling_summary.md`，其中包含：
-- 完整的模型公式（LaTeX格式）
-- 模型对比表（Markdown格式）
-- 参数解释和结论
-
-可直接复制到论文中。
-
-### Q5: 预测结果包含NaN怎么办？
-
-**A**: 这通常表示某些天的天气数据缺失。程序会自动使用线性插值填补缺失值。如果仍有NaN，请检查原始天气数据的完整性。
-
-## Python版本要求
-
-- Python 3.7+
-- 推荐 Python 3.8 或更高版本
-
-## 依赖包说明
-
-| 包名 | 用途 | 版本 |
-|------|------|------|
-| pandas | 数据处理 | ≥1.3.0 |
-| numpy | 数值计算 | ≥1.21.0 |
-| matplotlib | 数据可视化 | ≥3.4.0 |
-| scikit-learn | 机器学习评估 | ≥0.24.0 |
-| statsmodels | 统计建模 | ≥0.13.0 |
-| openpyxl | Excel处理 | ≥3.6.0 |
-| scipy | 科学计算 | ≥1.7.0 |
-| chardet | 编码检测 | ≥4.0.0 |
-
-## 输出文件详细说明
-
-### 1. model_comparison.xlsx
-
-| 列 | 含义 |
-|----|------|
-| Model | 模型编号 (Model 1-5) |
-| R2 | 决定系数 |
-| RMSE_Y | 在Y空间的均方根误差 |
-| MAE_Y | 在Y空间的平均绝对误差 |
-| RMSE_M | 在M空间的均方根误差 |
-| MAE_M | 在M空间的平均绝对误差 |
-| AIC | 赤池信息准则 |
-| BIC | 贝叶斯信息准则 |
-
-### 2. main_model_coefficients.xlsx
-
-| 列 | 含义 |
-|----|------|
-| Coefficient | 参数名称 |
-| Estimate | 参数估计值 |
-| Std Error | 标准误差 |
-| t-value | t统计量 |
-| p-value | p值 |
-| CI_Lower | 95%置信区间下界 |
-| CI_Upper | 95%置信区间上界 |
-
-### 3. prediction_23_29.xlsx
-
-| 列 | 含义 |
-|----|------|
-| day | 预测的第几天 (23-29) |
-| 小号铁钉 | 该天小号铁钉的预测剩磁值 (mT) |
-| 小号铁夹 | 该天小号铁夹的预测剩磁值 (mT) |
-| 普通钢筋 | 该天普通钢筋的预测剩磁值 (mT) |
-| 锈蚀钢筋 | 该天锈蚀钢筋的预测剩磁值 (mT) |
-
-### 4. dynamic_threshold_1_90.xlsx
-
-| 列 | 含义 |
-|----|------|
-| day | 天数 (1-90) |
-| 小号铁钉_阈值 | 该天小号铁钉的动态阈值 (mT) |
-| 小号铁夹_阈值 | 该天小号铁夹的动态阈值 (mT) |
-| 普通钢筋_阈值 | 该天普通钢筋的动态阈值 (mT) |
-| 锈蚀钢筋_阈值 | 该天锈蚀钢筋的动态阈值 (mT) |
-
-### 5. processed_data.csv
-
-包含所有特征工程后的数据，便于后续分析。
-
-## 高级用法
-
-### 只运行特定阶段
-
-在 `main.py` 中注释掉不需要的步骤：
-
-```python
-# 例如，只进行数据加载和预处理
-df_exp, df_weather, col_maps = load_all_data()
-df_exp_clean = preprocess_experiment_data(df_exp)
-df_exp_clean = compute_remanence_ratio_and_decay(df_exp_clean)
-df_merged = merge_weather_data(df_exp_clean, df_weather)
-```
-
-### 自定义模型
-
-在 `src/modeling.py` 中的 `ModelBuilder` 类添加新模型：
-
-```python
-def build_model_6_custom(self):
-    # 自定义模型公式
-    df_model = self.df.copy()
-    formula = 'Y ~ your_formula_here'
-    model = ols(formula, data=df_model).fit()
-    self.models['Model 6'] = model
-    # ...
-```
-
-## 论文写作指南
-
-### 推荐引用以下输出
-
-1. **方法论**: `outputs/modeling_summary.md` 中的"4. 模型公式"部分
-2. **结果表格**: 直接使用Excel文件中的表格或转换为LaTeX表格
-3. **图表**: 直接使用 `outputs/figures/` 中的高质量PNG图表
-4. **预测结果**: 表格形式呈现 `prediction_23_29.xlsx` 的数据
-5. **动态阈值**: 用 `08_dynamic_thresholds.png` 说明阈值随时间的变化
-
-### LaTeX 代码示例
-
-```latex
-% 引用最终预测模型公式 (Model 5)
-\begin{equation}
-Y_{i,s}(t) = \alpha_s \cdot t + \beta_{\log} \ln(1+t) + \beta_T C_T(t) + \beta_H \text{TOW}(t) + \beta_{TH} C_{TH}(t) + \beta_{rust} \, rust\_TOW(t) + \varepsilon
-\end{equation}
-
-% 插入图表
-\begin{figure}
-  \centering
-  \includegraphics[width=0.8\textwidth]{figures/08_dynamic_thresholds.png}
-  \caption{动态阈值变化}
-\end{figure}
-```
-
-## 许可证
-
-本项目用于数学建模竞赛，可自由修改和使用。
-
-## 联系方式
-
-如有问题或建议，请检查代码中的注释或查阅 `outputs/modeling_summary.md`。
+> 重庆邮电大学数学建模竞赛 B 题：剩磁法雷击判定预测  
+> 本项目用于建立模拟雷击后铁磁性样品的剩磁衰减模型，并进一步生成第 23–29 天剩磁预测、1–90 天动态阈值、动态阈值近似预测区间以及雷击判定支持流程。
 
 ---
 
-**最后更新**: 2024年
+## 1. 项目目标
 
-**版本**: 1.0.0
+本项目围绕“剩磁法雷击判定预测”问题，完成以下工作：
+
+1. 基于实验数据建立剩磁衰减模型；
+2. 分析时间延迟、样品类型、温度、湿度、锈蚀状态等因素对剩磁衰减的影响；
+3. 预测四类样品在第 23–29 天的剩磁值；
+4. 对国标静态阈值进行 1–90 天动态修正；
+5. 构建动态阈值近似预测区间；
+6. 设计雷击判定分级规则；
+7. 输出完整图表、Excel 附件和论文可用的模型说明。
+
+本项目不是直接对原始剩磁值做黑箱拟合，而是先将剩磁转化为“保持率”和“衰减强度”，再建立具有物理解释性的半经验模型。
+
+---
+
+## 2. 数据规模与样品信息
+
+训练建模时移除了 day=0 数据，只使用 day>0 的观测记录。
+
+| 项目 | 数值 |
+|---|---:|
+| 样品总数 | 60 个 |
+| 样品类型 | 4 种 |
+| 测量时间点 | 22 个，day>0 |
+| 建模数据点 | 1320 条 |
+
+样品类型及记录数如下：
+
+| 样品类型 | 记录数 | 说明 |
+|---|---:|---|
+| 小号铁钉 | 440 | 小尺寸、无锈 |
+| 小号铁夹 | 440 | 小尺寸、无锈 |
+| 普通钢筋 | 220 | 大尺寸、无锈 |
+| 锈蚀钢筋 | 220 | 大尺寸、中度锈蚀 |
+
+---
+
+## 3. 项目目录结构
+
+推荐项目结构如下：
+
+```text
+project/
+├── data/
+│   ├── 附件1_模拟实验数据.csv
+│   └── 附件2-weather_data.xlsx
+│
+├── src/
+│   ├── data_loader.py
+│   ├── preprocessing.py
+│   ├── feature_engineering.py
+│   ├── modeling.py
+│   ├── prediction.py
+│   ├── visualization.py
+│   └── utils.py
+│
+├── outputs/
+│   ├── figures/
+│   ├── processed_data.csv
+│   ├── model_comparison.xlsx
+│   ├── main_model_coefficients.xlsx
+│   ├── explain_model_coefficients.xlsx
+│   ├── explain_vs_predict_model_comparison.xlsx
+│   ├── leave_one_day_cv_results.xlsx
+│   ├── leave_one_day_cv_summary.xlsx
+│   ├── leave_one_sample_cv_results.xlsx
+│   ├── leave_one_sample_cv_summary.xlsx
+│   ├── feature_correlation_matrix.xlsx
+│   ├── feature_vif.xlsx
+│   ├── prediction_23_29.xlsx
+│   ├── prediction_23_29_with_interval.xlsx
+│   ├── dynamic_threshold_1_90.xlsx
+│   ├── dynamic_threshold_monotonic_check.xlsx
+│   ├── monotonic_dynamic_threshold_1_90.xlsx
+│   ├── dynamic_threshold_with_interval_1_90.xlsx
+│   ├── lightning_decision_workflow.xlsx
+│   └── modeling_summary.md
+│
+├── main.py
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## 4. 运行方法
+
+### 4.1 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+建议的 Python 版本为 3.8 及以上。
+
+常用依赖包括：
+
+```text
+pandas
+numpy
+matplotlib
+scikit-learn
+statsmodels
+openpyxl
+scipy
+chardet
+```
+
+### 4.2 运行完整流程
+
+在项目根目录执行：
+
+```bash
+python main.py
+```
+
+程序将自动完成：
+
+1. 加载实验数据和天气数据；
+2. 进行数据清洗和字段识别；
+3. 计算剩磁保持率与衰减强度；
+4. 构造环境累计变量；
+5. 建立 ExplainModel、Model 1–Model 6；
+6. 选择 Model 5 作为最终预测模型；
+7. 输出第 23–29 天剩磁预测；
+8. 输出 1–90 天动态阈值；
+9. 输出动态阈值近似预测区间；
+10. 输出交叉验证和共线性分析；
+11. 生成 15 张论文图表。
+
+---
+
+## 5. 建模核心思想
+
+### 5.1 为什么不直接拟合原始剩磁？
+
+不同样品的初始剩磁值不同。如果直接拟合原始剩磁 \(M(t)\)，模型会把“初始剩磁差异”和“衰减规律差异”混在一起。
+
+因此，本项目先计算剩磁保持率：
+
+\[
+R_{i,s}(t)=\frac{M_{i,s}(t)}{M_{i,s}(0)}
+\]
+
+其中：
+
+- \(i\)：样品编号；
+- \(s\)：样品类型；
+- \(t\)：雷击后第 \(t\) 天；
+- \(M_{i,s}(t)\)：第 \(t\) 天剩磁值；
+- \(M_{i,s}(0)\)：初始剩磁值。
+
+保持率 \(R(t)\) 表示剩磁相对于初始值还剩多少：
+
+| \(R(t)\) | 含义 |
+|---:|---|
+| 1 | 没有衰减 |
+| 0.8 | 剩余 80% |
+| 0.5 | 剩余 50% |
+| 0.2 | 衰减严重 |
+
+然后定义衰减强度：
+
+\[
+Y_{i,s}(t)=-\ln R_{i,s}(t)
+\]
+
+由于 \(0<R(t)\le 1\)，所以 \(Y(t)\ge 0\)。\(Y(t)\) 越大，说明衰减越严重。
+
+---
+
+## 6. 数据预处理逻辑
+
+### 6.1 初始剩磁提取
+
+每个样品都有自己的初始剩磁值 \(M(0)\)。程序按“样品类型 + 样品编号”分组，提取 day=0 时的剩磁作为该样品的初始剩磁。
+
+### 6.2 移除 day=0 数据
+
+由于：
+
+\[
+R(0)=1
+\]
+
+所以：
+
+\[
+Y(0)=-\ln 1=0
+\]
+
+如果在普通回归中保留 day=0，模型容易被迫拟合一个截距，从而导致 \(t=0\) 时预测出非零衰减强度。因此，本项目在建模时移除 day=0 数据，只使用 day>0 的记录。
+
+### 6.3 使用无截距的 type:day 结构
+
+所有主模型使用：
+
+```text
+0 + C(样品类型):测量天数
+```
+
+即让每种样品类型拥有自己的时间衰减斜率，同时不引入普通截距。这样可以保证模型在物理上更接近 \(Y(0)=0\) 的要求。
+
+---
+
+## 7. 特征变量构造
+
+### 7.1 温度标准化
+
+\[
+z_T(d)=\frac{T_d-\mu_T}{\sigma_T}
+\]
+
+其中：
+
+- \(T_d\)：第 \(d\) 天温度；
+- \(\mu_T\)：温度均值；
+- \(\sigma_T\)：温度标准差。
+
+### 7.2 湿度标准化
+
+\[
+z_H(d)=\frac{RH_d-\mu_H}{\sigma_H}
+\]
+
+其中：
+
+- \(RH_d\)：第 \(d\) 天相对湿度；
+- \(\mu_H\)：湿度均值；
+- \(\sigma_H\)：湿度标准差。
+
+### 7.3 累计温度暴露
+
+\[
+C_T(t)=\sum_{d=1}^{t}z_T(d)
+\]
+
+该变量用于描述从雷击发生到第 \(t\) 天经历的累计温度偏离程度。
+
+### 7.4 累计湿润时间 TOW
+
+\[
+TOW(t)=\sum_{d=1}^{t}I_{wet}(d)
+\]
+
+其中：
+
+\[
+I_{wet}(d)=
+\begin{cases}
+1, & RH_d>80\% \text{ 且 } T_d>0 \\
+0, & \text{其他情况}
+\end{cases}
+\]
+
+该变量用于描述样品暴露于高湿环境的累计天数。
+
+### 7.5 温湿度耦合项
+
+\[
+C_{TH}(t)=\sum_{d=1}^{t}z_T(d)z_H(d)
+\]
+
+该变量用于描述温度与湿度共同作用下的累计环境暴露。
+
+### 7.6 锈蚀-湿润交互项
+
+\[
+rust\_TOW(t)=rust_0\times TOW(t)
+\]
+
+其中：
+
+- 小号铁钉、小号铁夹、普通钢筋：\(rust_0=0\)；
+- 锈蚀钢筋：\(rust_0=3\)。
+
+该项用于表示锈蚀样品在湿润环境下相对于基础时间衰减趋势的修正作用。需要注意，由于模型存在共线性，`rust_TOW` 不单独解释为“直接加速衰减”。
+
+### 7.7 磁黏滞对数时间项
+
+\[
+\log_t=\ln(1+t)
+\]
+
+该项用于描述剩磁衰减中的前期弛豫特征。加入该项后，模型对未观测时间点的预测能力明显增强。
+
+---
+
+## 8. 模型体系
+
+本项目建立了多个模型，用于逐步比较不同因素的解释能力和预测能力。
+
+### 8.1 Model 1：基础时间模型
+
+\[
+Y=\alpha_s t+\varepsilon
+\]
+
+含义：只考虑不同样品类型的基础时间衰减斜率。
+
+### 8.2 Model 2：加入温度和湿润时间
+
+\[
+Y=\alpha_s t+\beta_T C_T(t)+\beta_H TOW(t)+\varepsilon
+\]
+
+含义：在时间衰减基础上，加入累计温度暴露和累计湿润时间。
+
+### 8.3 Model 3：加入温湿度耦合项
+
+\[
+Y=\alpha_s t+\beta_T C_T(t)+\beta_H TOW(t)+\beta_{TH}C_{TH}(t)+\varepsilon
+\]
+
+含义：进一步考虑温度和湿度之间的耦合修正作用。
+
+### 8.4 Model 4：稳健基准模型
+
+\[
+Y=\alpha_s t+\beta_T C_T(t)+\beta_H TOW(t)+\beta_{TH}C_{TH}(t)+\beta_{rust}rust\_TOW(t)+\varepsilon
+\]
+
+含义：加入锈蚀-湿润交互项，但不包含 \(\ln(1+t)\)。该模型作为稳健基准模型，仅用于对照。
+
+### 8.5 Model 5：最终预测模型
+
+\[
+Y=\alpha_s t+\beta_{\log}\ln(1+t)+\beta_T C_T(t)+\beta_H TOW(t)+\beta_{TH}C_{TH}(t)+\beta_{rust}rust\_TOW(t)+\varepsilon
+\]
+
+Model 5 是本项目最终预测模型，用于：
+
+1. 第 23–29 天剩磁预测；
+2. 1–90 天动态阈值计算；
+3. 动态阈值单调修正；
+4. 动态阈值近似预测区间；
+5. 雷击判定分级流程。
+
+选择 Model 5 的原因：
+
+1. 相比 Model 4，Model 5 在 \(Y\) 空间和原始剩磁 \(M\) 空间误差均显著降低；
+2. 相比 Model 6，Model 5 只增加一个统一 \(\ln(1+t)\) 系数，复杂度更低；
+3. \(\ln(1+t)\) 具有磁黏滞前期弛豫的物理解释背景。
+
+### 8.6 Model 6：复杂对照模型
+
+\[
+Y=\alpha_s t+\beta_{\log,s}\ln(1+t)+\beta_T C_T(t)+\beta_H TOW(t)+\beta_{TH}C_{TH}(t)+\beta_{rust}rust\_TOW(t)+\varepsilon
+\]
+
+含义：允许不同样品类型拥有不同的 \(\ln(1+t)\) 系数。该模型用于复杂度对照，不作为最终预测模型。
+
+---
+
+## 9. 解释模型与预测模型的分工
+
+### 9.1 ExplainModel：解释模型
+
+\[
+Y=\alpha_s t+\beta_{\log}\ln(1+t)+\varepsilon
+\]
+
+ExplainModel 只包含样品类型时间衰减斜率和 \(\ln(1+t)\)，不加入环境累计变量，也不加入 `Rust0 × t`。
+
+用途：
+
+1. 验证时间延迟是否是剩磁衰减的主导因素；
+2. 比较四类样品基础时间衰减斜率；
+3. 通过锈蚀钢筋斜率高于普通钢筋，说明锈蚀状态降低剩磁稳定性；
+4. 避免环境累计变量共线性造成解释困难。
+
+### 9.2 Model 5：预测模型
+
+Model 5 含有环境累计变量，主要用于工程预测和动态阈值修正。
+
+用途：
+
+1. 预测第 23–29 天剩磁；
+2. 计算 1–90 天动态阈值；
+3. 计算动态阈值近似预测区间；
+4. 生成雷击判定分级规则。
+
+### 9.3 为什么要区分解释模型和预测模型？
+
+累计环境变量如 \(C_T\)、\(TOW\)、\(C_{TH}\) 都随时间累积，与 day 和 \(\ln(1+t)\) 存在较强共线性。因此，如果直接把 Model 5 中所有环境项解释为独立因果效应，容易产生误导。
+
+所以本项目采用：
+
+```text
+解释模型负责机理解释；
+预测模型负责工程预测。
+```
+
+这种分工可以同时保证模型的可解释性和预测能力。
+
+---
+
+## 10. 模型对比结果说明
+
+`outputs/model_comparison.xlsx` 保存了各模型在训练集上的对比结果，包括：
+
+| 指标 | 含义 |
+|---|---|
+| R2 | 决定系数，越接近 1，拟合程度越高 |
+| RMSE_Y | 在衰减强度 \(Y\) 空间的均方根误差 |
+| MAE_Y | 在衰减强度 \(Y\) 空间的平均绝对误差 |
+| RMSE_M | 在原始剩磁 \(M\) 空间的均方根误差 |
+| MAE_M | 在原始剩磁 \(M\) 空间的平均绝对误差 |
+| AIC | 赤池信息准则，考虑拟合误差和模型复杂度 |
+| BIC | 贝叶斯信息准则，对复杂模型惩罚更强 |
+
+当前结果中，Model 5 的预测性能优于 Model 4，同时比 Model 6 更简洁，因此被选为最终预测模型。
+
+---
+
+## 11. Model 5 参数解释
+
+`outputs/main_model_coefficients.xlsx` 保存 Model 5 的参数估计结果，包括：
+
+| 字段 | 含义 |
+|---|---|
+| Coefficient | 参数名称 |
+| Estimate | 参数估计值 |
+| Std Error | 标准误差 |
+| t-value | t 统计量 |
+| p-value | 显著性水平 |
+| CI_Lower | 95% 置信区间下界 |
+| CI_Upper | 95% 置信区间上界 |
+
+### 11.1 重要解释原则
+
+因变量为：
+
+\[
+Y=-\ln R
+\]
+
+所以：
+
+| 系数符号 | 含义 |
+|---|---|
+| 正系数 | 增大 \(Y\)，表示增强衰减 |
+| 负系数 | 减小 \(Y\)，表示对基础时间衰减趋势的补偿或修正 |
+
+### 11.2 样品类型时间斜率
+
+Model 5 中四类样品都有自己的 type:day 时间衰减斜率。
+
+其中普通钢筋和锈蚀钢筋规格相同，主要差异为锈蚀状态。若锈蚀钢筋的时间衰减斜率高于普通钢筋，则说明锈蚀状态降低了剩磁稳定性，并增强了基础时间衰减趋势。
+
+### 11.3 log_t 项
+
+\(\ln(1+t)\) 项显著为正，说明加入前期弛豫效应后，模型能够更好解释剩磁衰减过程。
+
+### 11.4 环境累计变量
+
+\(C_T\)、\(TOW\)、\(C_{TH}\) 等变量在模型中具有统计显著性，但由于它们与 day 和 \(\ln(1+t)\) 存在较强共线性，因此不宜解释为严格独立因果效应。
+
+本项目将这些变量解释为：
+
+```text
+对基础时间衰减轨迹的统计修正项。
+```
+
+### 11.5 rust_TOW 项
+
+`rust_TOW` 是锈蚀-湿润交互修正项。由于其系数为负，在控制样品类型时间衰减斜率、\(\ln(1+t)\) 和累计环境变量后，该项主要表示锈蚀样品在湿润暴露下相对于基础时间衰减趋势的补偿性修正。
+
+因此，不应将 `rust_TOW` 单独解释为“锈蚀直接加速衰减”。锈蚀影响主要通过锈蚀钢筋与普通钢筋的 type:day 斜率差异体现。
+
+---
+
+## 12. 共线性分析
+
+`outputs/feature_correlation_matrix.xlsx` 和 `outputs/feature_vif.xlsx` 用于分析特征之间的相关性和多重共线性。
+
+本项目重点分析以下变量：
+
+```text
+day, log_t, C_T, TOW, C_TH, rust_TOW
+```
+
+### 12.1 为什么共线性重要？
+
+由于 \(C_T\)、\(TOW\)、\(C_{TH}\) 都是从第 1 天累计到第 \(t\) 天的变量，它们天然会和时间变量相关。
+
+如果强行把这些变量解释为独立因果项，可能会造成错误结论。
+
+因此，本文采用更谨慎的解释方式：
+
+```text
+环境累计变量具有统计修正作用，
+但不作强独立因果解释。
+```
+
+### 12.2 VIF 输出含义
+
+| VIF 范围 | 含义 |
+|---|---|
+| < 5 | 共线性较弱 |
+| 5–10 | 共线性较明显 |
+| > 10 | 共线性较强，需要谨慎解释 |
+
+本项目中，部分变量 VIF 较高，因此正文中需要明确说明参数符号不能简单按直觉解释。
+
+---
+
+## 13. Leave-One-Day-Out 交叉验证
+
+`outputs/leave_one_day_cv_results.xlsx` 和 `outputs/leave_one_day_cv_summary.xlsx` 保存按测量天数留一交叉验证结果。
+
+### 13.1 验证方法
+
+每次选择一个测量天数作为验证集：
+
+1. 去掉该 day 的所有样品记录；
+2. 用剩余 day 的数据训练模型；
+3. 预测被去掉 day 的所有样品；
+4. 计算误差。
+
+### 13.2 为什么需要这个验证？
+
+题目要求预测第 23–29 天，而原始数据中有第 22 天和第 30 天测量点，却没有第 23–29 天。
+
+因此，第 23–29 天预测本质上是未观测时间点插值任务。Leave-One-Day-Out CV 能够验证模型对未观测时间点的预测能力。
+
+### 13.3 输出指标
+
+| 指标 | 含义 |
+|---|---|
+| CV_RMSE_Y | 留一验证中 \(Y\) 空间均方根误差 |
+| CV_MAE_Y | 留一验证中 \(Y\) 空间平均绝对误差 |
+| CV_RMSE_M | 留一验证中原始剩磁空间均方根误差 |
+| CV_MAE_M | 留一验证中原始剩磁空间平均绝对误差 |
+
+Model 5 在该验证中表现优于 Model 4，并且与 Model 6 接近，因此进一步支持选择 Model 5 作为最终模型。
+
+---
+
+## 14. Leave-One-Sample-Out 交叉验证
+
+`outputs/leave_one_sample_cv_results.xlsx` 和 `outputs/leave_one_sample_cv_summary.xlsx` 保存样品留一交叉验证结果。
+
+### 14.1 验证方法
+
+每次选择一个完整样品作为验证集：
+
+1. 去掉该样品的所有时间点记录；
+2. 用剩余样品训练 Model 5；
+3. 预测被去掉样品的所有时间点；
+4. 计算误差。
+
+### 14.2 验证意义
+
+Leave-One-Sample-Out CV 用于评估模型对同分布新样品的泛化能力。
+
+需要注意，这里的“新样品”是指：
+
+```text
+同类样品、相同实验环境范围内、未参与训练的样品。
+```
+
+不应将该结论过度外推到完全不同规格、完全不同材质或完全不同环境下的铁件。
+
+---
+
+## 15. 第 23–29 天剩磁预测
+
+`outputs/prediction_23_29.xlsx` 保存四类样品第 23–29 天的预测剩磁值。
+
+### 15.1 预测公式
+
+Model 5 先预测衰减强度：
+
+\[
+\hat{Y}_s(t)
+\]
+
+再计算剩磁保持率：
+
+\[
+\hat{R}_s(t)=\exp[-\hat{Y}_s(t)]
+\]
+
+最终得到剩磁预测值：
+
+\[
+\hat{M}_s(t)=M_s(0)\exp[-\hat{Y}_s(t)]
+\]
+
+### 15.2 输出含义
+
+| 字段 | 含义 |
+|---|---|
+| day | 预测天数，23–29 |
+| 小号铁钉 | 该天小号铁钉平均剩磁预测值 |
+| 小号铁夹 | 该天小号铁夹平均剩磁预测值 |
+| 普通钢筋 | 该天普通钢筋平均剩磁预测值 |
+| 锈蚀钢筋 | 该天锈蚀钢筋平均剩磁预测值 |
+
+`outputs/prediction_23_29_with_interval.xlsx` 若存在，则包含近似预测区间。
+
+---
+
+## 16. 动态阈值修正
+
+### 16.1 静态阈值
+
+根据题目设定：
+
+| 样品类型 | 静态阈值 \(T_0\) |
+|---|---:|
+| 小号铁钉 | 1.0 mT |
+| 小号铁夹 | 1.0 mT |
+| 普通钢筋 | 1.5 mT |
+| 锈蚀钢筋 | 1.5 mT |
+
+### 16.2 动态阈值公式
+
+\[
+T_{dyn,s}(t)=T_{0,s}\exp[-\hat{Y}_s(t)]
+\]
+
+含义：
+
+```text
+动态阈值 = 静态阈值 × 剩磁保持率
+```
+
+当检测时间越晚，剩磁衰减越严重，动态阈值也应相应降低。
+
+### 16.3 输出文件
+
+`outputs/dynamic_threshold_1_90.xlsx` 保存四类样品 1–90 天动态阈值。
+
+表格字段通常包括：
+
+| 字段 | 含义 |
+|---|---|
+| day | 天数 |
+| 小号铁钉_阈值 | 小号铁钉动态阈值 |
+| 小号铁夹_阈值 | 小号铁夹动态阈值 |
+| 普通钢筋_阈值 | 普通钢筋动态阈值 |
+| 锈蚀钢筋_阈值 | 锈蚀钢筋动态阈值 |
+
+---
+
+## 17. 动态阈值单调修正
+
+由于环境项可能导致 \(\hat{Y}(t)\) 局部下降，原始动态阈值可能局部上升。但从应用角度看，检测延迟越长，剩磁证据总体应越弱，因此动态阈值不应反向升高。
+
+### 17.1 单调修正公式
+
+\[
+Y_{mono}(t)=\max_{1\le d\le t}\hat{Y}(d)
+\]
+
+\[
+T_{dyn,mono}(t)=T_0\exp[-Y_{mono}(t)]
+\]
+
+### 17.2 输出文件
+
+| 文件 | 含义 |
+|---|---|
+| `dynamic_threshold_monotonic_check.xlsx` | 检查原始动态阈值是否存在局部上升 |
+| `monotonic_dynamic_threshold_1_90.xlsx` | 单调修正后的动态阈值表 |
+
+原始动态阈值反映模型对环境波动的响应；单调修正版更适合实际雷击判定流程。
+
+---
+
+## 18. 动态阈值近似预测区间
+
+`outputs/dynamic_threshold_with_interval_1_90.xlsx` 保存动态阈值均值及近似预测区间。
+
+### 18.1 区间构造逻辑
+
+基于 Model 5 在 \(Y\) 空间的残差标准差 \(\sigma_Y\)，构造：
+
+\[
+Y_{lower}=\hat{Y}-1.96\sigma_Y
+\]
+
+\[
+Y_{upper}=\hat{Y}+1.96\sigma_Y
+\]
+
+由于：
+
+\[
+T=T_0e^{-Y}
+\]
+
+所以阈值区间为：
+
+\[
+T_{upper}=T_0e^{-Y_{lower}}
+\]
+
+\[
+T_{mean}=T_0e^{-\hat{Y}}
+\]
+
+\[
+T_{lower}=T_0e^{-Y_{upper}}
+\]
+
+注意：由于指数函数中的负号，\(Y\) 越大，阈值越低，因此上下界转换时方向会反过来。
+
+### 18.2 区间性质说明
+
+该区间是基于残差标准差构造的近似预测区间，用于实际判定时的不确定性提示，不是严格贝叶斯置信区间。
+
+---
+
+## 19. 雷击判定分级规则
+
+`outputs/lightning_decision_workflow.xlsx` 保存雷击判定流程说明。
+
+基于实测剩磁 \(M_{obs}\) 和动态阈值区间，可采用四级判定：
+
+| 条件 | 判定 | 说明 |
+|---|---|---|
+| \(M_{obs}\ge T_{upper,95}\) | 高置信雷击 | 实测剩磁高于阈值上界 |
+| \(T_{mean}\le M_{obs}<T_{upper,95}\) | 疑似雷击 | 实测剩磁处于均值与上界之间 |
+| \(T_{lower,95}\le M_{obs}<T_{mean}\) | 低置信疑似 | 需结合现场证据综合判断 |
+| \(M_{obs}<T_{lower,95}\) | 雷击证据不足 | 实测剩磁低于阈值下界 |
+
+该规则将模型预测结果转化为可操作的工程判定流程。
+
+---
+
+## 20. 输出文件说明
+
+### 20.1 数据处理类输出
+
+| 文件 | 含义 |
+|---|---|
+| `processed_data.csv` | 完成预处理和特征工程后的建模数据 |
+
+### 20.2 模型结果输出
+
+| 文件 | 含义 |
+|---|---|
+| `model_comparison.xlsx` | ExplainModel 与 Model 1–6 的指标对比 |
+| `main_model_coefficients.xlsx` | Model 5 参数估计结果 |
+| `explain_model_coefficients.xlsx` | ExplainModel 参数估计结果 |
+| `explain_vs_predict_model_comparison.xlsx` | 解释模型与预测模型对比 |
+
+### 20.3 验证结果输出
+
+| 文件 | 含义 |
+|---|---|
+| `leave_one_day_cv_results.xlsx` | 按测量天数留一的逐次验证结果 |
+| `leave_one_day_cv_summary.xlsx` | 按测量天数留一的汇总指标 |
+| `leave_one_sample_cv_results.xlsx` | 按样品留一的逐次验证结果 |
+| `leave_one_sample_cv_summary.xlsx` | 按样品留一的汇总指标 |
+| `feature_correlation_matrix.xlsx` | 特征相关系数矩阵 |
+| `feature_vif.xlsx` | 特征 VIF 共线性分析 |
+
+### 20.4 预测和阈值输出
+
+| 文件 | 含义 |
+|---|---|
+| `prediction_23_29.xlsx` | 四类样品第 23–29 天剩磁预测 |
+| `prediction_23_29_with_interval.xlsx` | 第 23–29 天剩磁预测及近似预测区间 |
+| `dynamic_threshold_1_90.xlsx` | 1–90 天原始动态阈值 |
+| `dynamic_threshold_monotonic_check.xlsx` | 动态阈值单调性检查 |
+| `monotonic_dynamic_threshold_1_90.xlsx` | 单调修正动态阈值 |
+| `dynamic_threshold_with_interval_1_90.xlsx` | 动态阈值及近似预测区间 |
+| `lightning_decision_workflow.xlsx` | 雷击判定支持流程 |
+
+### 20.5 文档输出
+
+| 文件 | 含义 |
+|---|---|
+| `modeling_summary.md` | 建模结果摘要，可作为论文方法和结果部分来源 |
+| `README.md` | 项目说明文档 |
+
+---
+
+## 21. 图表说明
+
+所有图表位于：
+
+```text
+outputs/figures/
+```
+
+| 编号 | 文件名 | 内容 |
+|---:|---|---|
+| 01 | `01_average_remanence.png` | 四类样品平均剩磁随时间变化 |
+| 02 | `02_remanence_ratio.png` | 四类样品平均剩磁保持率随时间变化 |
+| 03 | `03_temperature_humidity.png` | 实验期间温度和相对湿度变化 |
+| 04 | `04_cumulative_features.png` | 累计温度暴露、湿润时间、温湿度耦合项变化 |
+| 05 | `05_measured_vs_predicted.png` | Model 5 预测值与实测值对比 |
+| 06 | `06_residuals_distribution.png` | Model 5 残差分布 |
+| 07 | `07_prediction_23_29.png` | Model 5 第 23–29 天预测剩磁曲线 |
+| 08 | `08_dynamic_thresholds.png` | Model 5 动态阈值 1–90 天 |
+| 09 | `09_corrosion_comparison.png` | 普通钢筋与锈蚀钢筋衰减对比 |
+| 10 | `10_feature_correlation_heatmap.png` | 特征相关性热力图 |
+| 11 | `11_leave_one_day_cv_comparison.png` | Leave-One-Day-Out CV 模型对比 |
+| 12 | `12_monotonic_threshold_comparison.png` | 原始阈值与单调修正阈值对比 |
+| 13 | `13_leave_one_sample_cv_comparison.png` | Leave-One-Sample-Out CV 结果 |
+| 14 | `14_dynamic_threshold_interval.png` | 动态阈值及近似预测区间 |
+| 15 | `15_decision_rule_diagram.png` | 雷击判定分级规则示意图 |
+
+---
+
+## 22. 论文写作建议
+
+### 22.1 数据分析部分
+
+建议使用：
+
+```text
+图 1、图 2、图 3、图 4
+```
+
+用于说明剩磁随时间衰减、不同样品衰减差异以及环境变量变化。
+
+### 22.2 模型建立部分
+
+建议重点写：
+
+1. 剩磁保持率 \(R(t)\)；
+2. 衰减强度 \(Y(t)=-\ln R(t)\)；
+3. type:day 无截距模型；
+4. Model 1–Model 6 逐步建模；
+5. Model 5 最终预测模型；
+6. ExplainModel 与 Model 5 的分工。
+
+### 22.3 模型验证部分
+
+建议使用：
+
+```text
+图 5、图 6、图 10、图 11、图 13
+```
+
+分别说明拟合效果、残差分布、共线性、未观测时间点预测能力、新样品泛化能力。
+
+### 22.4 因素分析部分
+
+建议使用：
+
+```text
+图 9
+```
+
+重点解释普通钢筋与锈蚀钢筋斜率差异，说明锈蚀状态降低剩磁稳定性。
+
+### 22.5 预测与动态阈值部分
+
+建议使用：
+
+```text
+图 7、图 8、图 12、图 14、图 15
+```
+
+用于说明第 23–29 天预测、动态阈值、单调修正、近似预测区间和雷击判定流程。
+
+---
+
+## 23. 需要避免的错误表述
+
+### 错误 1：把 rust_TOW 解释为直接加速衰减
+
+不推荐写：
+
+```text
+rust_TOW 表明锈蚀在湿润环境下直接加速衰减。
+```
+
+推荐写：
+
+```text
+rust_TOW 是锈蚀-湿润交互修正项，在共线性背景下表示相对于基础时间衰减趋势的补偿性修正，不单独解释为直接加速项。
+```
+
+### 错误 2：把环境项解释为严格独立因果效应
+
+不推荐写：
+
+```text
+TOW 独立导致剩磁衰减加快。
+```
+
+推荐写：
+
+```text
+TOW 在模型中具有统计显著性，但由于其与时间变量存在共线性，应解释为对衰减轨迹的修正作用。
+```
+
+### 错误 3：过度外推样品留一验证
+
+不推荐写：
+
+```text
+模型适用于所有未知铁件。
+```
+
+推荐写：
+
+```text
+在同类样品与相同实验环境条件下，模型对未参与训练的样品具有较好的样品层面泛化能力。
+```
+
+### 错误 4：把动态阈值区间称为严格置信区间
+
+不推荐写：
+
+```text
+本文给出了严格 95% 置信区间。
+```
+
+推荐写：
+
+```text
+本文基于残差标准差构造近似预测区间，用于实际判定时的不确定性提示。
+```
+
+---
+
+## 24. 最终结论摘要
+
+本项目最终形成如下建模逻辑：
+
+1. 使用剩磁保持率 \(R(t)=M(t)/M(0)\) 消除初始剩磁差异；
+2. 使用衰减强度 \(Y(t)=-\ln R(t)\) 建立指数型衰减框架；
+3. 通过 type:day 无截距模型刻画不同样品类型的基础时间衰减斜率；
+4. 通过 \(\ln(1+t)\) 表征前期磁黏滞弛豫效应；
+5. 通过累计环境变量修正衰减轨迹；
+6. 选择 Model 5 作为最终预测模型；
+7. 使用 Leave-One-Day-Out CV 验证未观测时间点预测能力；
+8. 使用 Leave-One-Sample-Out CV 验证同分布新样品泛化能力；
+9. 基于剩磁保持率修正国标静态阈值；
+10. 构建动态阈值单调修正版和近似预测区间；
+11. 形成高置信雷击、疑似雷击、低置信疑似和雷击证据不足四级判定流程。
+
+---
+
+## 25. 项目当前状态
+
+当前项目已完成：
+
+- 数据预处理；
+- 特征工程；
+- 多模型比较；
+- 最终模型选择；
+- 参数解释；
+- 共线性分析；
+- 时间点留一交叉验证；
+- 样品留一交叉验证；
+- 第 23–29 天预测；
+- 1–90 天动态阈值；
+- 动态阈值单调修正；
+- 动态阈值近似预测区间；
+- 雷击判定规则；
+- 15 张论文图表。
+
+因此，本项目已经可以进入论文正文撰写阶段。后续不建议继续大幅修改模型结构，重点应放在论文叙述、图表排版和结果解释一致性上。
+
